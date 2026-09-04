@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biology Term Scavenger Hunt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600&amp;family=Spectral:ital,wght@0,300;0,400;0,500;1,300&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#DCE3D5; --sheet:#FAFBF7; --ink:#1C2620; --ink-soft:#5D6A59;
+  --ink-faint:#93A08D; --rule:#BCC7B3; --stamp:#6A4A87; --warn:#8C4A2F;
+  --sheet-shadow:0 1px 0 #C6D0BD, 0 10px 22px -14px rgba(28,38,32,.5);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Spectral",Georgia,serif;font-weight:300;line-height:1.6}
+
+button{font-family:"Archivo Narrow",Arial,sans-serif;font-size:.9rem;
+  border:1px solid var(--rule);background:transparent;color:var(--ink-soft);
+  border-radius:2px;padding:6px 12px;cursor:pointer}
+button:hover{color:var(--ink);border-color:var(--ink-faint)}
+button.primary{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+button.primary:hover{background:#2B3A31}
+button:focus-visible,input:focus-visible,textarea:focus-visible,
+.sheet:focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
+
+/* ---------- edit toolbar ---------- */
+.tools{display:none;position:sticky;top:0;z-index:40;background:var(--paper);
+  border-bottom:1px solid var(--rule);padding:12px 24px}
+body.editing .tools{display:block}
+.tools-in{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;
+  align-items:center;gap:10px}
+.tools .label{font-family:"Archivo Narrow",Arial,sans-serif;font-size:.95rem;
+  flex:1;white-space:nowrap;color:var(--ink)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* ---------- masthead ---------- */
+.masthead{padding:60px 0 26px;position:relative}
+body.editing .masthead{padding-top:34px}
+.masthead h1{font-size:clamp(1.9rem,5vw,3.3rem);font-weight:400;
+  letter-spacing:-.015em;line-height:1.08;margin:0 0 6px;padding-right:90px}
+.byline{font-family:"Archivo Narrow",Arial,sans-serif;font-size:.94rem;
+  color:var(--ink-soft);margin:0}
+.byline em{color:var(--ink);font-style:normal}
+#editToggle{position:absolute;top:60px;right:0}
+body.editing #editToggle{display:none}
+
+.tally{display:flex;gap:3px;margin:28px 0 9px;height:22px;align-items:flex-end}
+.tick{flex:1;background:var(--rule);height:9px;border-radius:1px}
+.tick.filled{background:var(--stamp);height:22px}
+.tick.part{background:#D8C9A8;height:15px}
+.tally-note{font-family:"Archivo Narrow",Arial,sans-serif;font-size:.9rem;
+  color:var(--ink-soft);margin:0}
+
+/* ---------- filters ---------- */
+.filters{display:flex;flex-wrap:wrap;gap:7px;
+  border-top:1px solid var(--rule);padding-top:20px}
+.filters button[aria-pressed="true"]{background:var(--ink);
+  border-color:var(--ink);color:var(--sheet)}
+
+/* ---------- notices ---------- */
+.fail{margin:24px auto 0;max-width:74ch;padding:15px 18px;background:#F6E9E4;
+  border:1px solid #D8B7A8;color:#6E3A24;font-size:.94rem;display:none}
+.fail.show{display:block}
+.fail code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+
+/* ---------- grid ---------- */
+main{padding:30px 0 90px}
+.unit-head{display:flex;align-items:baseline;gap:12px;margin:40px 0 15px}
+.unit-head:first-child{margin-top:0}
+.unit-head h2{font-size:1.24rem;font-weight:400;margin:0;white-space:nowrap}
+.unit-head .line{flex:1;height:1px;background:var(--rule)}
+.unit-head .n{font-family:"Archivo Narrow",Arial,sans-serif;font-size:.85rem;
+  color:var(--ink-faint)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:19px}
+.sheet{background:var(--sheet);border:1px solid #D3DBCB;box-shadow:var(--sheet-shadow);
+  padding:10px 10px 0;display:flex;flex-direction:column;cursor:pointer;
+  text-align:left;font:inherit;color:inherit;width:100%}
+.sheet .frame{aspect-ratio:4/5;background:#EDF1E8;border:1px solid #E0E6D9;
+  overflow:hidden;display:flex;align-items:center;justify-content:center}
+.sheet .frame img{width:100%;height:100%;object-fit:cover;display:block}
+.sheet .hint{font-size:.82rem;font-style:italic;color:var(--ink-faint);
+  padding:13px;text-align:center;line-height:1.42}
+.label{padding:10px 1px 12px}
+.label .meta{display:flex;justify-content:space-between;
+  font-family:"Archivo Narrow",Arial,sans-serif;font-size:.77rem;
+  color:var(--ink-faint);margin-bottom:3px}
+.label .acc{color:var(--stamp)}
+.label .name{font-size:1.04rem;line-height:1.25}
+.sheet.partial{border-color:#D8C9A8}
+.sheet.empty{box-shadow:none;border-style:dashed;border-color:#C3CDBA;background:#F1F4ED}
+.sheet.empty .name{color:var(--ink-faint)}
+body:not(.editing) .sheet.empty{opacity:.75}
+
+/* ---------- overlay ---------- */
+.overlay{position:fixed;inset:0;background:rgba(24,33,27,.72);display:none;
+  align-items:center;justify-content:center;padding:20px;z-index:60}
+.overlay.open{display:flex}
+.panel{background:var(--sheet);max-width:930px;width:100%;max-height:93vh;
+  overflow:auto;padding:24px;position:relative;display:grid;gap:24px;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.05fr)}
+.close{position:absolute;top:10px;right:12px;background:transparent;border:0;
+  font-size:1.6rem;line-height:1;color:var(--ink-soft);cursor:pointer;padding:4px 8px}
+
+.frame-lg{background:#EDF1E8;border:1px solid #E0E6D9;min-height:200px}
+.frame-lg img{width:100%;display:block}
+
+.drop{border:1px dashed var(--ink-faint);background:#EDF1E8;aspect-ratio:4/5;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  cursor:pointer;overflow:hidden;text-align:center}
+.drop.over{border-color:var(--stamp);background:#E6E2EE}
+.drop img{width:100%;height:100%;object-fit:cover;display:block}
+.drop .msg{padding:20px;font-size:.9rem;color:var(--ink-soft);font-style:italic}
+.drop-actions{display:flex;gap:8px;margin-top:10px}
+
+.acc-line{font-family:"Archivo Narrow",Arial,sans-serif;font-size:.82rem;
+  color:var(--stamp);margin:0 0 2px}
+.unit-line{font-family:"Archivo Narrow",Arial,sans-serif;font-size:.85rem;
+  color:var(--ink-faint);margin:0 0 13px}
+.panel h3{font-size:1.8rem;font-weight:400;margin:0 0 15px;line-height:1.15}
+.panel p.caption{margin:0;font-size:1.02rem;max-width:60ch}
+.panel p.todo{margin:0;color:var(--ink-faint);font-style:italic}
+.hint-line{font-size:.88rem;font-style:italic;color:var(--ink-faint);margin:0 0 15px}
+
+label.fld{display:block;font-family:"Archivo Narrow",Arial,sans-serif;
+  font-size:.85rem;color:var(--ink-soft);margin:0 0 5px}
+input[type=text],textarea{width:100%;font-family:"Spectral",Georgia,serif;
+  font-weight:300;font-size:1rem;color:var(--ink);background:#fff;
+  border:1px solid var(--rule);border-radius:2px;padding:9px 10px;line-height:1.55}
+textarea{min-height:200px;resize:vertical}
+.field{margin-bottom:15px}
+.meter{font-family:"Archivo Narrow",Arial,sans-serif;font-size:.83rem;
+  color:var(--ink-faint);margin-top:6px}
+.meter.short{color:var(--warn)}
+.meter.ok{color:var(--stamp)}
+.panel-nav{display:flex;gap:8px;justify-content:space-between;
+  border-top:1px solid var(--rule);padding-top:13px}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+  background:var(--ink);color:var(--sheet);padding:10px 18px;border-radius:2px;
+  font-family:"Archivo Narrow",Arial,sans-serif;font-size:.9rem;opacity:0;
+  pointer-events:none;transition:opacity .18s;z-index:90;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+
+@media (max-width:720px){
+  .masthead{padding-top:36px}
+  .masthead h1{padding-right:0}
+  #editToggle{position:static;margin-top:14px}
+  .panel{grid-template-columns:1fr;padding:18px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:13px}
+  .tally{gap:2px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>.lottie-animation-container{width:var(--lottie-animation-container-width);height:var(--lottie-animation-container-height);background-color:var(--lottie-animation-container-background-color);overflow:hidden;margin:var(--lottie-animation-margin)}.lottie-animation-container svg{transform:scale(var(--lottie-animation-scale))}</style><style>.lottie-animation-container{width:var(--lottie-animation-container-width);height:var(--lottie-animation-container-height);background-color:var(--lottie-animation-container-background-color);overflow:hidden;margin:var(--lottie-animation-margin)}.lottie-animation-container svg{transform:scale(var(--lottie-animation-scale))}</style></head>
+<body class="">
+
+<div class="tools">
+  <div class="tools-in">
+    <span class="label" id="toolCount">50 of 50 finished</span>
+    <button type="button" id="btnMeta">Name &amp; identifier</button>
+    <button type="button" id="btnBackup">Save backup</button>
+    <button type="button" id="btnRestore">Load backup</button>
+    <button type="button" class="primary" id="btnExport">Export site</button>
+    <button type="button" id="btnDone">Done editing</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="masthead">
+    <h1>Biology Term Scavenger Hunt</h1>
+    <p class="byline" id="byline">Collected by <em>Eason Fan</em> &nbsp;·&nbsp; identifier in every frame: Green Ducky</p>
+    <button type="button" id="editToggle">Edit</button>
+    <div class="tally" id="tally" aria-hidden="true"></div>
+    <p class="tally-note" id="tallyNote">50 of 50 mounted</p>
+  </header>
+
+  <nav class="filters" id="filters" aria-label="Filter by unit"><button type="button" data-u="0" aria-pressed="true">All 50</button><button type="button" data-u="1" aria-pressed="false">Unit 1</button><button type="button" data-u="2" aria-pressed="false">Unit 2</button><button type="button" data-u="3" aria-pressed="false">Unit 3</button><button type="button" data-u="4" aria-pressed="false">Unit 4</button><button type="button" data-u="5" aria-pressed="false">Unit 5</button><button type="button" data-u="6" aria-pressed="false">Unit 6</button><button type="button" data-u="7" aria-pressed="false">Unit 7</button><button type="button" data-u="8" aria-pressed="false">Unit 8</button></nav>
+  <div class="fail" id="fail"></div>
+  <main id="main"></main>
+</div>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true">
+  <div class="panel" id="panel"></div>
+</div>
+
+<div class="toast" id="toast">Backup downloaded.</div>
+<input type="file" id="filePick" accept="image/*" hidden="">
+<input type="file" id="jsonPick" accept="application/json,.json" hidden="">
+
+<script type="application/json" id="baked">
+{
+  "student": "Eason Fan",
+  "identifier": "Green Ducky",
+  "terms": [
+    {
+      "unit": 1,
+      "term": "Hydrogen Bond",
+      "hint": "Oil layered on water",
+      "image": "images/01-hydrogen-bond.jpg",
+      "caption": "One of my favorite summer drinks is coconut water with ice. In this unassuming drink is the cumulation of centuries of history, chemical science, and the heart of many modern industry: ice. Ice is a fantastic example of H-bond. The H-bond occurs when a slightly positively charged Hydrogen gets attracted by a slightly negatively charged atom. As temperature decreases, the energy of the particle inside the water decreases, until ice is formed from the hydrogen bonds locking the water molecules in a latice structure."
+    },
+    {
+      "unit": 1,
+      "term": "Specific heat",
+      "hint": "Ice cube floating",
+      "image": "images/02-specific-heat.jpg",
+      "caption": "My grandparents came to visit us over the summer, and our favorite past time is getting together to drink Gongfu tea in our lovely back yard. Often, I am the one that gets sent home to fetch and boil the water, a process that I thought took way too long. Specific heat measures the resistance of a material to the change in tempeture, and the specific heat of water is 4.18 J/C, an awfully high number. To boil the water, we need to increase its temperature from around by around 80 degrees Celsius. With the kettle transferring heat at 1500 J/s with 1700g of water, it would take 379 seconds to boil the water."
+    },
+    {
+      "unit": 1,
+      "term": "Adhesion",
+      "hint": "Meniscus curving up a glass",
+      "image": "images/03-adhesion.jpg",
+      "caption": "Summer rain is one of the most memorable experiences and who can't forget the experience of watching the rain droplets as it travels down the window. Ever wonder why the rain droplets stick to the window, instead of falling straight down to the ground? The answer lies in adhesion, the binding of two distinct substances. In this case, adhesion occurs in the binding of water to the glass surface. Specifically, the reactive groups in glass, like silanol groups, form hydrogen bonds with polar molecules, in this case, water. When the force of gravity beats that of adhesion, the water droplets falls down to the ground. "
+    },
+    {
+      "unit": 1,
+      "term": "Cohesion",
+      "hint": "Water domed over an overfilled rim",
+      "image": "images/04-cohesion.jpg",
+      "caption": "It just rained. Such beauty is found in the world by our attention to the phenomena of nature. Why do the water droplets stay together in clumps of water instead of just being completely dispersed? The answer lies in cohesion, the attractive force that bonds like molecules together; specifically, the hydrogen bonds of water bond the water droplets together on that leaf. The leaf is non-polar meaning the force of cohesion acts unopposed. "
+    },
+    {
+      "unit": 1,
+      "term": "Hydrophobic",
+      "hint": "Water beading on wax paper",
+      "image": "images/05-hydrophobic.jpg",
+      "caption": "Like many other families, we used the outdoor grill a couple of times over summer. The other days, we put a cover over to shield it from water. Looking at how water remains clumped on the surface, the cover is hydrophobic. Hydrophobic describes substances that won't bind to water, meaning hydrophobic substances are generally nonpolar. From a science youtube video that I watched earlier in the year, I learned that most hydrophobic products are made by a fluoropolymer coating that consists of long carbon chains with attached flourine."
+    },
+    {
+      "unit": 1,
+      "term": "Hydrophilic",
+      "hint": "Paper towel wicking, or sugar dissolving",
+      "image": "images/06-hydrophilic.jpg",
+      "caption": "Before siting outside after the rain, I always use a paper towels to wipe up the table and chairs. The paper towel is an amazing example of a hydrophilic material. Hydrophilic describes materials that chemically and physically attracts water. The hydrophilic properties of a paper towel comes from its main composition cellulose, long sugar chains with numerous hydroxyl groups. Hydroxyl groups, like water, are incredibly polar; thus, the slightly negative side of hydroxyl group bonds greatly with the slightly positive side of H2O. "
+    },
+    {
+      "unit": 1,
+      "term": "Acid",
+      "hint": "White vinegar",
+      "image": "images/07-acid.jpg",
+      "caption": "Over summer camp, I drank a lot of orange juice as a subsitute for energy drinks to pull late night sessions. With a PH of around 3.6, the orange juice is an example of an acid--substances that donate H+ ions in a solution. Interestly, orange juice's sourness, the taste that keeps me awake, directly results from its acidity. When you drink orange juice, the positivitly charged H+ hits your taste buds and your brain percieves it as sourness. "
+    },
+    {
+      "unit": 1,
+      "term": "Base",
+      "hint": "Baking soda",
+      "image": "images/08-base.jpg",
+      "caption": "Doing dishes is a universal experience, yet we so often overlook the seemingly magical properties of dish soap. The dish soap in your kitchen sink has a pH of around 9, meaning it is a base. A base is a substance that receives H+ ions when mixed in a solution. The alkalinity of dish soap is what breaks the down proteins and triglycerides, hence making them incredible cleaners. Unfortunately, your skin is made of the materials that bases seeks to destroy, which makes repeated cleaning damaging to your skin. "
+    },
+    {
+      "unit": 1,
+      "term": "Carbohydrate",
+      "hint": "Dry flour, or sugar",
+      "image": "images/09-carbohydrate.jpg",
+      "caption": "Sugar is ubiquitous in our daily lives, especially mines. Sugar accompanies me through baking, cooking, and in my afternoon snacks. Sugar, with a chemical composition of C₁₂H₂₂O₁₁ is an example of a carbohydrate. Carbohydrates, a molecule chain usually containing Carbon, Hydrogen, and Oxygen in a 1:2:1 ratio, are the main source of fuel for the human body. Compared to other carbohydrates, sugar is broken down at a fast rate resulting in blood sugar spikes that wouldn't occur with other carbohydrate spikes like beans. "
+    },
+    {
+      "unit": 1,
+      "term": "Hydrolysis",
+      "hint": "Dry pasta beside soaked pasta",
+      "image": "images/10-hydrolysis.jpg",
+      "caption": "My love for pasta almost unmatched. Over the summer, I ate pasta both with myself, and with my family. Pasta like many food items turn soft when it is soaked in water, especially hot water. This process occurs due to hydrolysis, a chemical reaction which uses water to break long chains; pasta consists of long amylose and amylopectin glucose chains that gets broken by water. This process explains why pasta softens faster in higher temperature water: higher temperature means that the H2O molecules contain more energy, thus more H2O molecule get past the activation energy. "
+    },
+    {
+      "unit": 1,
+      "term": "DNA / RNA",
+      "hint": "Strawberry DNA extraction",
+      "image": "images/11-dna-rna.jpg",
+      "caption": "When I visited the Museum of science in Boston, I noticed images of DNAs are shown multiple times throughout the museum. DNA is just as just as ubiquitous in the real world; it is found in every living-cell on earth without exception. This poster shows an example of a strand of DNA, the molecule that stores information in double helixes by paired bases. The chemical ring diagrams on the poster are of the nitrogenous bases - the letters of the DNA code. The poster also names the major tech companies in the boston area: Biogen, Genzyme, Takeda Oncology, Massachusetts Life Sciences."
+    },
+    {
+      "unit": 1,
+      "term": "Lipids",
+      "hint": "Butter or olive oil",
+      "image": "images/12-lipids.jpg",
+      "caption": "Vegetable is essential to Chinese cuisine. It is used in almost every dish because of its peculiar properties as a triglyceride lipid. lipids are a diverse group of nonpolar organic molecules serving vital roles in living organisms. Its quintessential property, hydrophobicity, is the essence of its plethora of functions: its non-polarity ensures that your food doesn't stick to the pan. In humans, lipids enables compact waterless energy storage, make up the animal cell membrane, and constitutes signals like testosterone, estrogen, or cortisol in the body. "
+    },
+    {
+      "unit": 1,
+      "term": "Protein",
+      "hint": "Gluten strands stretching from flour dough",
+      "image": "images/13-protein.jpg",
+      "caption": "Over summer, I've had cooked eggs basically every single day; it was also my primary source of protein when I started working out. Most of the protein in an egg comes from the white part, which consists of 90% water, and 10% albumin, a kind of protein. Proteins, defined by the composition of chains of amino acids, serve vital roles in the human body: they maintain the continuous rebuilding of human's various tissues. Such versatile function of proteins results from its specialized shapes built by different amino acid sequences. In a cooked egg, denaturation destroys the protein's shape to a solid form, thus resulting in its white look."
+    },
+    {
+      "unit": 1,
+      "term": "Enzyme",
+      "hint": "Browned apple half",
+      "image": "images/14-enzyme.jpg",
+      "caption": "Apple was one of my favorite snacks over summer. It is surely tasty, but when exposed to air, it tends to turn brown. When an apple is cut, polyphenol oxidase, which is stored inside a cell is exposed to the phenolic compounds stored in the vacuole. The protein polyphenol oxidase, responsible for an apple's browning, is an amazing example of an enzyme. An enzyme is defined as a protein that lowers the activation energy of a reaction; in this case, the polyphenol oxidase binds to its substrate, the phenolic compounds, to lower the activation energy of chemical reaction causing the browning. "
+    },
+    {
+      "unit": 1,
+      "term": "Inhibition",
+      "hint": "Vinegar-treated apple half, still pale",
+      "image": "images/15-inhibition.jpg",
+      "caption": "Like I mentioned before, apples are one of my favorite snacks, but they suffer from browning when exposed to air. I often add salt water to solve this problem. Compared to the other side without saltwater treatment, this side of the apple faced significantly less browning. The saltwater helps in two ways: the chloride ions in the saltwater block the copper needed for oxidation and prevents the oxygen from reaching the reaction site, both inhibiting the chemical reaction. Thus, the addition of salt water is a prime example of inhibition, the process where an inhibitor reduces a reaction. "
+    },
+    {
+      "unit": 2,
+      "term": "Prokaryotes",
+      "hint": "Yogurt with live active cultures",
+      "image": "images/16-prokaryotes.jpg",
+      "caption": "Yogurt was one of my favorite breakfast items over summer. I took this picture in the Boston Museum of Science showing the recommended breakfast items. Yogurt contains billions of prokaryotes, cells that have no nucleus and no membrane-bound organelles. The prokaryote bacteria inside the yogurt ferment the lactose into lactic acid, the thing that gives yogurt its thickness. These live cultures are probiotics, and they join the trillions of bacteria in the gut microbiome."
+    },
+    {
+      "unit": 2,
+      "term": "Eukaryotes",
+      "hint": "Mushroom",
+      "image": "images/17-eukaryotes.jpg",
+      "caption": "Mushrooms are found everywhere in nature--in our yards, on hikes, and in forests. Mushrooms are also contained in some of my favorate dishs I ate over summer. This peculiar fungus has its DNA contained in its nucleus and compartmentalizes in functions such as using the mitocondria as the power house of the cell. Thus, it is an amazing example of a eukaryote, organisms that have DNA in a nucleus and compartmentalizes in inclosed membrances. Other living things such as humans, dogs, and cats are also eukaryotes. "
+    },
+    {
+      "unit": 8,
+      "term": "Competitive exclusion",
+      "hint": "Soap bubble",
+      "image": "images/18-competitive-exclusion.jpg",
+      "caption": "When I was scootering around my neighborhood, I saw this patch of English Ivy in someone's yard. I noticed how it conquered the entire yard unlike other type of plants. The English Ivy is an example of competitive exclusion--when two species can't coexist because one overcrowds the other.  Originating from Europe, the English Ivy is invasive to Newton. It has no natural prededor or diesease, meaning its growth is unregulated. "
+    },
+    {
+      "unit": 2,
+      "term": "Diffusion",
+      "hint": "Food coloring spreading in still water",
+      "image": "images/19-diffusion.jpg",
+      "caption": "The process of diffusion is everywhere. It is found in the dispersal of water and the dissipation of heat. An amazing example to show diffusion, the movement of particle from high concentration to a low concentration spread, is the diffusion of ink in water. When high concentration ink is added into plain water, ink particles constantly bounce around, and, because of probability, more ink is bouncing out into the water than bouncing back in. Diffusion can also be explained in terms of entropy; as ink bounces around, the disorder increases, thus increasing entropy as diffusion occurs. "
+    },
+    {
+      "unit": 2,
+      "term": "Osmosis",
+      "hint": "Gummy bear after soaking overnight",
+      "image": "images/20-osmosis.jpg",
+      "caption": "The Welch's Mixed Fruit snack is one of my favorites. They are affordable, yummy, and very sweet. The picture shows a gummy bear that was soaked in water overnight and one that was taken out of the bag. Due to its high concentration of sugar and gelatin, when it is soaked in water, the water moved from the low concentration surroundings to the highly concentrated interior, creating the swelling showen in the picture. This process is a clear example of osmosis, when water diffuses across a semipermeable membrane, from low to high concentration areas. "
+    },
+    {
+      "unit": 8,
+      "term": "Müllerian mimicry",
+      "hint": "Salted vegetable slices weeping water",
+      "image": "images/21-m-llerian-mimicry.jpg",
+      "caption": "I saw bees everywhere over summer, and its roles in the ecosystem are vital. I took this particular hive picture in the Boston Museum of Science. Bees are similar to their counterpart wasps: they both sting and they both evolved to have yellow and black stripes. This is an example of Müllerian mimicry, when two dangerous species share the same warning signals. In this case, the bees share the same color pattern as wasps as a warning that they both sting."
+    },
+    {
+      "unit": 8,
+      "term": "Biomass",
+      "hint": "Swollen gummy bear beside a dry one",
+      "image": "images/22-biomass.jpg",
+      "caption": "I was scootering around on the local trail and I stumbled upon this fallen log. Logs are everywhere; they are the material we use to build homes and burn fires. The log contains dozens of years of fixed carbon, and it is decomposed back into the environment at the end of its cycle. The log is an example of biomass, the organic matter of recently lived or living life. The energy stored by the log is returned via decomposers like fungi."
+    },
+    {
+      "unit": 3,
+      "term": "Photosynthesis",
+      "hint": "Sunlit leaves",
+      "image": "images/23-photosynthesis.jpg",
+      "caption": "Over summer, I love to sit outside and read lying on grass. The unassuming little plants that lie beneath you are performing a process so important that it is the source of life on earth: photosynthesis. Photosynthesis is how plants convert light energy into usable chemical energy. First, the chlorophyll absorbs the light from the sun. Then, the grass blades pull CO2 from the air and water from the soil to produce glucose using the energy absorbed by the chlorophyll and releases oxygen as a byproduct. "
+    },
+    {
+      "unit": 3,
+      "term": "Chlorophyll ",
+      "hint": "Light moss beside dark moss on one trunk",
+      "image": "images/24-chlorophyll.jpg",
+      "caption": "One of my favorite activities over summer is to just read my book and observe the world around me. Often I notice that the world is so awfully green. What makes the leaves green I ask. The answer lies in chlorophyll, a pigment on leaves that captues light and starts its chemical coversation into useable energy. Photons in light hits the chlorophyll pigment, moving an electron into an exicited state in the chlorophyll; then, the energy is transferred to the pigments through resonance. The greeness of a plant comes from the green light that chlorophyll reflects. "
+    },
+    {
+      "unit": 3,
+      "term": "Autotrophs",
+      "hint": "Any plant making its own food",
+      "image": "images/25-autotrophs.jpg",
+      "caption": "Starting April, my family started planting tomatoes in our backyard. Recently, just recently, come of the tomatoes are rip enough to be eaten. The tomato plant is an amazing example of a autotroph, live forms that sources its energy from non-living sources. Autotrophs are split into two main groups, the photoautotrophs and the chemoautotrophs. The tomato plant is an example of a photoautotrophs as it converts light energy into sugar through photosynthesis."
+    },
+    {
+      "unit": 3,
+      "term": "Endergonic ",
+      "hint": "Turkeys or squirrels feeding",
+      "image": "images/26-endergonic.jpg",
+      "caption": "Over the summer, I visited the museum of science in Boston. As I walked through the dinasour section, I couldn't help but notice that the plants in the cretaceous period look so similar to present day plants while the animals evolved to look so different. Unsurprisingly, while the diets of animals changed, the energy capturing process in plants remained the same. Both the plants from the cretaceous period and plants that we currently find all around us use photosynthesis, an endergonic reaction. Endergonic reactions are ones that have a positive delta G, meaning that energy is absorbed in the system for the reaction to occur. "
+    },
+    {
+      "unit": 3,
+      "term": "Heterotrophs",
+      "hint": "Maple or oak",
+      "image": "images/27-heterotrophs.jpg",
+      "caption": "I saw squirrels everywhere over summer. One of the times I saw one of these creatures was near the parking lot of the Museum of Science in Boston. This particular squirrel is climbing into a trashcan looking for food. Accordingly, squirrels are an example of a heterotroph, organisms that don't make their own food and consume other organisms for energy. The squirrel in this picture is scavenging for human food waste for its energy. "
+    },
+    {
+      "unit": 3,
+      "term": "Entropy",
+      "hint": "Crabgrass in the lawn",
+      "image": "images/28-entropy.jpg",
+      "caption": "The story of the universe is the story of entropy; over summer, I noticed that it was all around me. Said by many, entropy is also the essence of time. In this picture, concentrated water spreads out into a pond, from a low-entropy state into a disordered state. This process is one example of entropy increasing. This phenomenon is also the source of life on earth: concentrated low entropy light is emitted from the sun, and through the ecosystems on earth, the energy is released as disordered heat back into the solar system. "
+    },
+    {
+      "unit": 3,
+      "term": "Carbon Fixation",
+      "hint": "Sedum or jade on a porch",
+      "image": "images/29-carbon-fixation.jpg",
+      "caption": "You see trees of all sizes and kinds everywhere you walk. I saw this tree in my backyard, and it has a thick woody trunk like any another tree. The trunk shown here is the result of carbon fixation, the process where carbon from the air is fixed into a solid material. Carbon fixation is the second part of the Calvin cycle and starts when rubisco takes CO2 from the air. The carbon is turned into glucose, and the tree links the glucose into the hard fiber cellulose; finally, it is turned into wood which is the substance of the trunk."
+    },
+    {
+      "unit": 3,
+      "term": "C3 plant",
+      "hint": "Yeast foaming in warm sugar water",
+      "image": "images/30-c3-plant.jpg",
+      "caption": "Walking around the school, I stumbled upon this tree. Through the heart shaped leaves, I was able to identify it as a Linden tree. Linden tree is an example of a C3 plant, plants that use the standard pathway photosynthesis. In a C3 plant, rubisco takes CO2 from the air and attaches it to a 5-carbon molecule, RuBP, which splits the product into a stable 3 carbon molecule. C3 plants like the Linden tree have a downside: the rubisco sometimes grabs oxygen instead of carbon dioxide resulting in inefficiencies. "
+    },
+    {
+      "unit": 4,
+      "term": "Somatic",
+      "hint": "Skin, leaf tissue, any body cell",
+      "image": "images/31-somatic.jpg",
+      "caption": "Every human alive on earth has it, and it is found on most other animals. You wear it every day and it serves one of the most important functions in the human body. It is the human skin. The human skin is an example of somatic cells, body cells that are not gametes. Like all somantics, the human skin cell are diploids and divide through mitosis, the production of identical copies. "
+    },
+    {
+      "unit": 4,
+      "term": "Gamete",
+      "hint": "Whole egg, or pollen on a flower",
+      "image": "images/32-gamete.jpg",
+      "caption": "Here in Newton, it just rained again. The thing that made me sneeze all summer just got washed onto the ground. Pollen is one example of a gamete, a haploid sex cell containing half of the chomosones in an body cell. Gametes come in two kinds: the egg and the sperm. Pollen is a male gamete that creates a seed when it fertilizes the eggs sitting inside the flower's ovule."
+    },
+    {
+      "unit": 4,
+      "term": "Reproduction",
+      "hint": "Sprouting potato, or seed head",
+      "image": "images/33-reproduction.jpg",
+      "caption": "I was walking on the local trail and saw a pinecone on the ground. This shows the female cone of an Eastern White Pine, a tree that is found everywhere in newton. This pinecone is an example of reproduction, when organisms produce offsprings to pass on genetic information. In Eastern White Pine reproduction, a single tree produces both the female and male cone. Wind spreads the pollen from a male cone to a female's, resulting in the fertilization of the egg; then, the tiny seeds are blown in the air, and a new plant is born. "
+    },
+    {
+      "unit": 4,
+      "term": "Homologous",
+      "hint": "Structures sharing an origin",
+      "image": "images/34-homologous.jpg",
+      "caption": "Muchi is my favorite dog in the world. She spends a significant time of her summer sitting on my lap. When we look closer at the evolution tree of both my pet and me, we realize that our limbs are homologous structures, body parts that share the same anatomy due to common ancestors. Don't be fooled, although my hand and Muchi's look different, we share the same underlying forelimb skeleton. In addition, science shows that my dog and I shared a common ancestor dating back to around the late Cretaceous period. "
+    },
+    {
+      "unit": 8,
+      "term": "Succession",
+      "hint": "Indian corn — every kernel a genotype",
+      "image": "images/35-succession.jpg",
+      "caption": "These little plants wedged between sidewalk cracks are found everywhere. I took this picture while on a walk to the library, my usual study spot. This little patch of weed is an example of succession, the gradual change of an envirnonment's species over time. As time passes, the weed slowly widens the gap in the side walk; this phenomenon is analogous to plants growing in nature on a rock slowly spliting the rock into two. When enough time passes, the environment would slowly change to the point of allowing new species to thrive. "
+    },
+    {
+      "unit": 8,
+      "term": "Keystone species",
+      "hint": "Mixed bean bag, or a coin toss setup",
+      "image": "images/36-keystone-species.jpg",
+      "caption": "During my visit to the Boston Museum of Science over summer, I saw this cute little animal in a display. This shows a beaver chewing on wood and another gathering sticks to build a dam. A beaver's impact on the natural ecosystem is crucial: their dams create wetlands the habitat that supports fish, birds, and different insect species. Thus, this makes the beaver a quintessential example of a keystone species--species that play a vital role in the ecosystem compared to their population size. Without these furry little friends, the wetland drains and the species that would depend on those habitats would disappear. "
+    },
+    {
+      "unit": 5,
+      "term": "Allele",
+      "hint": "Calico cat",
+      "image": "images/37-allele.jpg",
+      "caption": "Eggs were a common staple for my summer meals. However, we seldom think about their source: the chicken. Taken in the Museum of Science in Boston, it shows a variety of chickens--including Miss Massachusetts that set the record for the highest number of eggs laid in a year. The chicken feather colors is an example of alleles, different versions of the same gene. As you can read in the panel, they all descended from the red junglefowl, meaning they are the same species with different alleles. "
+    },
+    {
+      "unit": 5,
+      "term": "Polyploidy",
+      "hint": "Banana or strawberry",
+      "image": "images/38-polyploidy.jpg",
+      "caption": "I was walking around the Boston Museum of Science and I stumbled upon a list of things that make a good breakfast. Among it are bananas, orange juices, and milk. Bananas, one of my favorite fruits to eat over summer is an example of polyploidy, having more than two full chromosome sets. Banana have three chromosome sets, a property that prevents it from having seads. Meiosis, cell division that makes gametes, can't occur because 3 chromosome sets can't be split cleanly into two. "
+    },
+    {
+      "unit": 8,
+      "term": "Parasitism",
+      "hint": "Mosaic-patterned or streaked leaf",
+      "image": "images/39-paratisism.jpg",
+      "caption": "When I was walking around in the local trail, I stumbled upon this tree with brown spots on its leaves. What could the brown spots be I wondered. The brown spots are caused by the Rhytisma fungus; these fungi infect the tree via its spores and feed on the plant's nutrients. This mechanism is an example of parasitism, when one organism benefits and another gets harmed. The fungus kills the plant cells in the process of feeding on the leaves. "
+    },
+    {
+      "unit": 8,
+      "term": "K-selection",
+      "hint": "Four-leaf clover, or variegated leaf",
+      "image": "images/40-k-selection.jpg",
+      "caption": "We have certainly seen the giraffe from the Madagascar, a fill that I watched over summer. Photographed during my visit to the Museum of Science in Boston, this tall necked animal has some interesting traits. Among those are a giraffe's intense care for the young, an example trait of K-selection--traits that favor few offsprings with intensive individual care. A baby giraffe would spend around 4 to 5 years in parental care to fully mature to an adult. The parental care process is split into 4 stages: first, the adult giraffe spends 15 months in pregnancy; next, it stays being nursed by its mother for 9-12 months; finally, they spend an additional 4 years before reaching adulthood. "
+    },
+    {
+      "unit": 7,
+      "term": "Adaptation",
+      "hint": "Burrs, thorns, waxy leaf cuticle",
+      "image": "images/41-adaptation.jpg",
+      "caption": "Pine trees are everywhere in my neighbor's back year. They make for an amazing view all year round. The spiked leaves on a pine tree is an amazing example of adaptation, a inhereted trait that boosts an animal's chance of survival and reproduction. Here in Newton, the winter consistently drops below freezing meaning leaves with larger surface area loses lots of water from evaporation, a loss that the pine tree can't afford. Pine tree needles combat this from its reduced surface area and cutin production, a coating that protects the needles over winter."
+    },
+    {
+      "unit": 7,
+      "term": "Natural selection",
+      "hint": "Trait that clearly pays off in this habitat",
+      "image": "images/42-natural-selection.jpg",
+      "caption": "During my visit to the museum of science in Boston, I captured this picture of a live sized replica of a tiger. For a long time, wondered why these apex predators have strips. The answer lies in natural selection, the process which certain traits are preferred over others because the animals with traits that are more likely to survive would carry it into future generations. The strips on a tiger likely arouse from a genetic mutation, and the individuals with these stripes were likely to catch more preys and survive. Interestingly, this is mechanism is also found in zerbras, an animal with stripes from a completely different ecosystem. "
+    },
+    {
+      "unit": 8,
+      "term": "Dispersion",
+      "hint": "Dragonfly wing beside a bird feather",
+      "image": "images/43-dispersion.jpg",
+      "caption": "Our rubber ducky finally found its companions. Taken beside the Charles, this picture shows a group of ducks swimming together. This is example of dispersion the spatial pattern of individuals inside a population. The group of ducks show that ducks are clumped, benefiting from foraging behavior and safety in numbers. In addition, clumping aids pairing for ducks. "
+    },
+    {
+      "unit": 7,
+      "term": "Species",
+      "hint": "Lichen — one name, two organisms",
+      "image": "images/44-species.jpg",
+      "caption": "During my visit to the Museum of Science in Boston, I stumbled upon this display of a polar bear. Polar bears are one of my favorite animals, and, given my love for the film My Friend Bernard, it is not at all surprising. Polar bears are an example of a species, a group of organisms that share similar characteristics and can interbreed. Polar bears are a species of fierce nature despite their furry look. They are the apex predator of the arctic and males weigh up to 650 kilograms. "
+    },
+    {
+      "unit": 8,
+      "term": "Biodiversity",
+      "hint": "One species, one place, counted",
+      "image": "images/45-biodiversity.jpg",
+      "caption": "We see birds everywhere in our everyday lives. However, we don't even know if a particular bird is a rare sight when we see one. I took this poster showing the conservation status of each species of New England bird in the Museum of Science in Boston. This is an example of biodiversity, as it shows the great variety of birds in the New England area. Preserving the biodiversity of an ecosystem is crucial for maintaining a resilient ecosystem. "
+    },
+    {
+      "unit": 8,
+      "term": "Biotic",
+      "hint": "Turkey flock, clumped",
+      "image": "images/46-biotic.jpg",
+      "caption": "Turkeys are everywhere in Newton. You see them in yards, parks, and just walking around on the road. Turkeys are a native animal to New England, an important living component of the ecosystem for thousands of years. They are a quintessential example of biotic, the living part of an ecosystem and their interactions. Turkeys serve numerous roles in the ecosystem of Newton: they are a consumer, speed distributer, a prey, and a forager.  "
+    },
+    {
+      "unit": 8,
+      "term": "Mutualism",
+      "hint": "Lichen on bark",
+      "image": "images/47-mutualism.jpg",
+      "caption": "Relationships are all around us in the natural and societial world. Relationships govern every one of our social interactions and inside the lichen found in our tree barks. Lichen are two organisms fused togethor: fungus and alga. Fungus is the housing that forms the structure of the lichen, and the light green alga lies inside the structure formed by the fungus. Their relationship is one of mutualism, when both species benefit: the alga feeds the food for both itself and the fungus, while the fungus provides the shelter. "
+    },
+    {
+      "unit": 8,
+      "term": "Commensalism",
+      "hint": "Moss on a trunk",
+      "image": "images/48-commensalism.jpg",
+      "caption": "Trees are all around us in the natural world. We see it everyday when walking to school and driving in cars. Almost on every tree, we see mosses growing on the tree trunk. The relationship between the moss and the tree is an amazing example of commensalism, when one organism doesn't get affected and the other benefits. The tree lifts the moss high up in the air, thus exposing the moss to more sunlight, while, because tree bark is dead tissue, the tree remains unaffected. "
+    },
+    {
+      "unit": 8,
+      "term": "Niche",
+      "hint": "Powdery mildew, oak gall, or aphids",
+      "image": "images/49-niche.jpg",
+      "caption": "I was riding around on my scooter and I stumbled across this fallen log. Look closer, inside the cracks of this tree is a little carpender ant friend clearing out the tree trunk for shelter. The full role of this carpenter ant is an example of a niche, an organism's full role in an ecosystem. The capender ant resides in the log and hunts insects and feed on honeydew for food. Capender ants are crucial for the environment as they acelerate the decomposition of dead tress and are preys for various animals. "
+    },
+    {
+      "unit": 8,
+      "term": "Abiotic",
+      "hint": "Spider web with prey",
+      "image": "images/50-abiotic.jpg",
+      "caption": "Rocks are found everywhere in the natural world. I found this particular rock in my backyard. A rock is one example of abiotic, the non-living parts in an ecosystem. Like sunlight and water, a rock is not alive. Rocks serve as shelters for animals, dictate the flow of water, and regulate soil temperatures."
+    }
+  ]
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+var UNIT_NAMES={1:"Chemistry of Life",2:"Cell Structure and Function",
+  3:"Cellular Energetics",4:"Cell Cycle",5:"Heredity",6:"Gene Expression",
+  7:"Natural Selection",8:"Ecology"};
+
+var KEY="apbio-v2";
+var data=null, cur=-1, filter=0, editing=false;
+
+/* ---------- data ---------- */
+
+function baked(){
+  return JSON.parse(document.getElementById("baked").textContent);
+}
+
+function load(){
+  try{
+    var raw=localStorage.getItem(KEY);
+    if(raw){
+      var p=JSON.parse(raw);
+      if(p && p.terms && p.terms.length) return p;
+    }
+  }catch(e){}
+  return baked();
+}
+
+var saveTimer=null, warned=false;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(function(){
+    try{ localStorage.setItem(KEY,JSON.stringify(data)); warned=false; }
+    catch(e){
+      if(!warned){ warned=true;
+        toast("Storage is full. Save a backup now, then remove a photo."); }
+    }
+  },250);
+}
+
+/* ---------- small helpers ---------- */
+
+function acc(i){ return String(i+1).padStart(2,"0"); }
+function slug(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function para(s){ return esc(s).replace(/\n{2,}/g,'</p><p class="caption">').replace(/\n/g,"<br>"); }
+function sentences(s){ var m=s.trim().match(/[^.!?]+[.!?]+/g);
+  return m?m.length:(s.trim()?1:0); }
+function state(t){
+  if(t.image && t.caption.trim()) return "done";
+  if(t.image || t.caption.trim())  return "partial";
+  return "empty";
+}
+
+function toast(msg){
+  var el=document.getElementById("toast");
+  el.textContent=msg; el.classList.add("show");
+  clearTimeout(el._t);
+  el._t=setTimeout(function(){ el.classList.remove("show"); },3400);
+}
+
+function fail(html){
+  var el=document.getElementById("fail");
+  el.innerHTML=html; el.classList.add("show");
+}
+
+function download(blob,name){
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },5000);
+}
+
+function readImage(file,cb){
+  var fr=new FileReader();
+  fr.onload=function(){
+    var im=new Image();
+    im.onload=function(){
+      var max=1400,w=im.width,h=im.height;
+      if(w>h&&w>max){ h=Math.round(h*max/w); w=max; }
+      else if(h>=w&&h>max){ w=Math.round(w*max/h); h=max; }
+      var c=document.createElement("canvas");
+      c.width=w; c.height=h;
+      c.getContext("2d").drawImage(im,0,0,w,h);
+      cb(c.toDataURL("image/jpeg",0.82));
+    };
+    im.onerror=function(){ toast("That file could not be read as an image."); };
+    im.src=fr.result;
+  };
+  fr.onerror=function(){ toast("Could not read that file."); };
+  fr.readAsDataURL(file);
+}
+
+/* ---------- render ---------- */
+
+function render(){
+  document.getElementById("byline").innerHTML=
+    "Collected by <em>"+esc(data.student)+"</em> &nbsp;·&nbsp; identifier in every frame: "+
+    esc(data.identifier);
+
+  var units=Object.keys(UNIT_NAMES).map(Number);
+  var shown=units.filter(function(u){ return filter===0||filter===u; });
+
+  document.getElementById("main").innerHTML=shown.map(function(u){
+    var list=data.terms.map(function(t,i){ return {t:t,i:i}; })
+                       .filter(function(x){ return x.t.unit===u; });
+    if(!list.length) return "";
+    var n=list.filter(function(x){ return state(x.t)==="done"; }).length;
+    return '<section><div class="unit-head"><h2>'+UNIT_NAMES[u]+'</h2>'+
+      '<span class="line"></span><span class="n">'+n+" / "+list.length+'</span></div>'+
+      '<div class="grid">'+list.map(function(x){ return sheetHTML(x.t,x.i); }).join("")+
+      '</div></section>';
+  }).join("");
+
+  var done=data.terms.filter(function(t){ return state(t)==="done"; }).length;
+  document.getElementById("tally").innerHTML=data.terms.map(function(t){
+    var s=state(t);
+    return '<span class="tick'+(s==="done"?" filled":s==="partial"?" part":"")+'"></span>';
+  }).join("");
+  document.getElementById("tallyNote").textContent=done+" of "+data.terms.length+" mounted";
+  document.getElementById("toolCount").textContent=done+" of "+data.terms.length+" finished";
+}
+
+function sheetHTML(t,i){
+  var body=t.image
+    ? '<img src="'+esc(t.image)+'" alt="'+esc(t.term)+'" loading="lazy">'
+    : '<span class="hint">'+esc(t.hint||"not collected yet")+'</span>';
+  return '<button type="button" class="sheet '+state(t)+'" data-i="'+i+'">'+
+    '<span class="frame">'+body+'</span><span class="label">'+
+    '<span class="meta"><span class="acc">'+acc(i)+'</span><span>Unit '+t.unit+'</span></span>'+
+    '<span class="name">'+esc(t.term)+'</span></span></button>';
+}
+
+/* ---------- filters ---------- */
+
+(function(){
+  var units=[0].concat(Object.keys(UNIT_NAMES).map(Number));
+  document.getElementById("filters").innerHTML=units.map(function(u){
+    return '<button type="button" data-u="'+u+'" aria-pressed="'+(u===0)+'">'+
+      (u===0?"All 50":"Unit "+u)+"</button>";
+  }).join("");
+  document.getElementById("filters").addEventListener("click",function(e){
+    var b=e.target.closest("button");
+    if(!b) return;
+    filter=Number(b.dataset.u);
+    [].forEach.call(this.querySelectorAll("button"),function(x){
+      x.setAttribute("aria-pressed",Number(x.dataset.u)===filter);
+    });
+    render();
+  });
+})();
+
+/* ---------- panel ---------- */
+
+var overlay=document.getElementById("overlay");
+var panel=document.getElementById("panel");
+var filePick=document.getElementById("filePick");
+
+document.getElementById("main").addEventListener("click",function(e){
+  var s=e.target.closest(".sheet");
+  if(s) openPanel(Number(s.dataset.i));
+});
+
+function openPanel(i){
+  cur=i;
+  var t=data.terms[i];
+  var head='<button type="button" class="close" id="pClose" aria-label="Close">&times;</button>';
+  var meta='<p class="acc-line">'+acc(i)+'</p>'+
+           '<p class="unit-line">Unit '+t.unit+' · '+UNIT_NAMES[t.unit]+'</p>';
+
+  if(!editing){
+    panel.innerHTML=head+
+      '<div class="frame-lg">'+(t.image?'<img src="'+esc(t.image)+'" alt="'+esc(t.term)+'">':'')+'</div>'+
+      '<div>'+meta+'<h3>'+esc(t.term)+'</h3>'+
+      (t.caption?'<p class="caption">'+para(t.caption)+'</p>'
+                :'<p class="todo">Caption not written yet.'+
+                 (t.hint?" Planned specimen: "+esc(t.hint)+".":"")+'</p>')+
+      '</div>';
+    overlay.classList.add("open");
+    panel.querySelector("#pClose").onclick=closePanel;
+    panel.querySelector("#pClose").focus();
+    return;
+  }
+
+  panel.innerHTML=head+
+    '<div><div class="drop" id="drop">'+
+      (t.image?'<img src="'+esc(t.image)+'" alt="">'
+             :'<span class="msg">Drop a photo here, or tap to choose one</span>')+
+    '</div><div class="drop-actions">'+
+      '<button type="button" id="pPick">Choose photo</button>'+
+      (t.image?'<button type="button" id="pClear">Remove photo</button>':'')+
+    '</div></div>'+
+    '<div>'+meta+
+      '<div class="field"><label class="fld" for="pTerm">Term</label>'+
+        '<input type="text" id="pTerm" value="'+esc(t.term)+'"></div>'+
+      (t.hint?'<p class="hint-line">Planned specimen: '+esc(t.hint)+'</p>':'')+
+      '<div class="field"><label class="fld" for="pCap">Your caption</label>'+
+        '<textarea id="pCap" placeholder="Five sentences, in your own words.">'+esc(t.caption)+'</textarea>'+
+        '<div class="meter" id="pMeter"></div></div>'+
+      '<div class="panel-nav">'+
+        '<button type="button" id="pPrev">&larr; Previous</button>'+
+        '<button type="button" id="pNext">Next &rarr;</button>'+
+      '</div></div>';
+
+  overlay.classList.add("open");
+  wire();
+  document.getElementById("pCap").focus();
+}
+
+function wire(){
+  var t=data.terms[cur];
+  document.getElementById("pClose").onclick=closePanel;
+  document.getElementById("pPrev").onclick=function(){ step(-1); };
+  document.getElementById("pNext").onclick=function(){ step(1); };
+
+  var drop=document.getElementById("drop");
+  drop.onclick=pick;
+  document.getElementById("pPick").onclick=function(e){ e.stopPropagation(); pick(); };
+
+  var clr=document.getElementById("pClear");
+  if(clr) clr.onclick=function(e){
+    e.stopPropagation(); t.image=""; save(); render(); openPanel(cur);
+  };
+
+  ["dragenter","dragover"].forEach(function(ev){
+    drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add("over"); });
+  });
+  ["dragleave","drop"].forEach(function(ev){
+    drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove("over"); });
+  });
+  drop.addEventListener("drop",function(e){
+    var f=e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) takeFile(f);
+  });
+
+  var cap=document.getElementById("pCap");
+  cap.oninput=function(){ t.caption=cap.value; meter(); save(); };
+  var term=document.getElementById("pTerm");
+  term.oninput=function(){ t.term=term.value; save(); };
+  meter();
+}
+
+function meter(){
+  var t=data.terms[cur], el=document.getElementById("pMeter");
+  if(!el) return;
+  var n=sentences(t.caption);
+  var w=t.caption.trim()?t.caption.trim().split(/\s+/).length:0;
+  el.textContent=n+(n===1?" sentence":" sentences")+" · "+w+" words";
+  el.className="meter "+(n===0?"":n<5?"short":"ok");
+}
+
+function pick(){ filePick.value=""; filePick.click(); }
+filePick.onchange=function(){
+  var f=filePick.files && filePick.files[0];
+  if(f) takeFile(f);
+};
+
+function takeFile(f){
+  if(!/^image\//.test(f.type)){ toast("That is not an image file."); return; }
+  readImage(f,function(url){
+    data.terms[cur].image=url;
+    save(); render(); openPanel(cur);
+    toast("Photo added.");
+  });
+}
+
+function step(d){
+  var n=cur+d;
+  if(n<0||n>=data.terms.length) return;
+  openPanel(n);
+}
+
+function closePanel(){ overlay.classList.remove("open"); render(); }
+
+overlay.addEventListener("click",function(e){ if(e.target===overlay) closePanel(); });
+document.addEventListener("keydown",function(e){
+  if(!overlay.classList.contains("open")) return;
+  if(e.key==="Escape"){ closePanel(); return; }
+  var typing=e.target.tagName==="TEXTAREA"||e.target.tagName==="INPUT";
+  if(typing) return;
+  if(e.key==="ArrowLeft")  step(-1);
+  if(e.key==="ArrowRight") step(1);
+});
+
+/* ---------- mode ---------- */
+
+function setEditing(on){
+  editing=on;
+  document.body.classList.toggle("editing",on);
+  if(on) location.hash="edit";
+  else if(location.hash==="#edit") history.replaceState(null,"",location.pathname+location.search);
+  render();
+}
+
+document.getElementById("editToggle").onclick=function(){ setEditing(true); };
+document.getElementById("btnDone").onclick=function(){ setEditing(false); };
+
+/* ---------- toolbar ---------- */
+
+document.getElementById("btnMeta").onclick=function(){
+  var s=prompt("Your name:",data.student);
+  if(s!==null&&s.trim()) data.student=s.trim();
+  var d=prompt("Your identifier (the object in every photo):",data.identifier);
+  if(d!==null&&d.trim()) data.identifier=d.trim();
+  save(); render(); toast("Saved.");
+};
+
+document.getElementById("btnBackup").onclick=function(){
+  download(new Blob([JSON.stringify(data)],{type:"application/json"}),
+           "scavenger-hunt-backup.json");
+  toast("Backup downloaded.");
+};
+
+document.getElementById("btnRestore").onclick=function(){
+  document.getElementById("jsonPick").click();
+};
+
+document.getElementById("jsonPick").onchange=function(){
+  var f=this.files&&this.files[0];
+  if(!f) return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    try{
+      var p=JSON.parse(fr.result);
+      if(!p.terms||!p.terms.length) throw 0;
+      data=p; save(); render(); toast("Backup loaded.");
+    }catch(e){ toast("That file isn't a valid backup."); }
+  };
+  fr.readAsText(f);
+};
+
+/* ---------- export ---------- */
+
+function buildPage(){
+  var doc=document.documentElement.cloneNode(true);
+
+  var out={student:data.student,identifier:data.identifier,terms:[]};
+  data.terms.forEach(function(t,i){
+    out.terms.push({
+      unit:t.unit, term:t.term, hint:t.hint||"",
+      image: t.image ? "images/"+acc(i)+"-"+(slug(t.term)||"specimen")+".jpg" : "",
+      caption:t.caption
+    });
+  });
+
+  doc.querySelector("#baked").textContent="\n"+JSON.stringify(out,null,2)+"\n";
+  doc.querySelector("#main").innerHTML="";
+  doc.querySelector("#panel").innerHTML="";
+  doc.querySelector("#overlay").classList.remove("open");
+  doc.querySelector("#fail").classList.remove("show");
+  doc.querySelector("#fail").innerHTML="";
+  doc.querySelector("#tally").innerHTML="";
+  doc.querySelector("body").classList.remove("editing");
+
+  return "<!DOCTYPE html>\n"+doc.outerHTML;
+}
+
+document.getElementById("btnExport").onclick=function(){
+  var withPhotos=data.terms.filter(function(t){ return t.image; }).length;
+  var page=buildPage();
+
+  if(typeof JSZip==="undefined"){
+    download(new Blob([page],{type:"text/html"}),"index.html");
+    toast("Zip library blocked — downloaded index.html only. Photos need saving by hand.");
+    return;
+  }
+
+  var zip=new JSZip();
+  zip.file("index.html",page);
+  var imgs=zip.folder("images");
+  data.terms.forEach(function(t,i){
+    if(!t.image||t.image.indexOf("data:")!==0) return;
+    imgs.file(acc(i)+"-"+(slug(t.term)||"specimen")+".jpg",
+              t.image.split(",")[1],{base64:true});
+  });
+  if(!withPhotos) imgs.file(".gitkeep","");
+
+  zip.generateAsync({type:"blob"}).then(function(blob){
+    download(blob,"apbio-site.zip");
+    toast(withPhotos+" photo"+(withPhotos===1?"":"s")+" exported. Unzip, upload the contents.");
+  }).catch(function(){
+    toast("Export failed. Save a backup instead.");
+  });
+};
+
+/* ---------- start ---------- */
+
+function storageWorks(){
+  try{ localStorage.setItem("__p__","1"); localStorage.removeItem("__p__"); return true; }
+  catch(e){ return false; }
+}
+
+try{
+  data=load();
+  if(location.hash==="#edit") setEditing(true);
+  else render();
+  if(!storageWorks()){
+    fail("<strong>This browser will not save your work.</strong> "+
+         "You can type and add photos, but it is lost when the tab closes. "+
+         "Turn off private browsing, or upload this file to GitHub and use the "+
+         "<code>github.io</code> address instead.");
+  }
+}catch(e){
+  fail("<strong>Something went wrong starting up.</strong><br>"+
+       "Error: <code>"+esc(e.message||String(e))+"</code>");
+}
+
+})();
+</script>
+
+
+</body></html>
